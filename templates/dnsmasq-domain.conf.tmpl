@@ -1,0 +1,5 @@
+# Hijack ${DOMAIN} on the hotspot to point at the Pi (${HOTSPOT_IP}).
+# This means clients connected to the Pi's hotspot resolve the domain
+# locally and never need a public A record. The Let's Encrypt cert is
+# still valid because cert validation is by name, not by IP.
+address=/${DOMAIN}/${HOTSPOT_IP}

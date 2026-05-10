@@ -1,0 +1,22 @@
+# Local config — secrets!
+config.env
+
+# Generated certs / state
+state/
+*.pem
+*.key
+*.crt
+*.csr
+
+# acme.sh data
+.acme.sh/
+
+# Editor / OS junk
+.vscode/
+.idea/
+.DS_Store
+*.swp
+*.swo
+*~
+__pycache__/
+*.pyc

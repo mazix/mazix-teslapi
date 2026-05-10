@@ -1,0 +1,15 @@
+[Unit]
+Description=KasmVNC Server (display :1)
+After=default.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStartPre=-/usr/bin/rm -f /tmp/.X1-lock /tmp/.X11-unix/X1
+ExecStart=/usr/bin/kasmvncserver -DisableBasicAuth -SecurityTypes None
+ExecStop=/usr/bin/kasmvncserver -kill :1
+StandardOutput=append:/tmp/kasmvnc-systemd.log
+StandardError=append:/tmp/kasmvnc-systemd.log
+
+[Install]
+WantedBy=default.target

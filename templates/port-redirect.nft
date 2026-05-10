@@ -1,0 +1,9 @@
+# Redirect TCP 443 → 8443 so users can hit https://domain without :8443.
+# KasmVNC keeps running unprivileged on 8443.
+
+table inet portfwd {
+  chain prerouting {
+    type nat hook prerouting priority dstnat; policy accept;
+    tcp dport 443 redirect to :8443
+  }
+}

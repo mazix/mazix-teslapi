@@ -1,0 +1,11 @@
+[Unit]
+Description=Bluetooth pairing agent (NoInputNoOutput)
+After=bluetooth.target
+
+[Service]
+ExecStart=/usr/bin/bt-agent --capability=NoInputNoOutput
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=default.target

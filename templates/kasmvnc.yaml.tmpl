@@ -1,0 +1,39 @@
+network:
+  protocol: http
+  interface: 0.0.0.0
+  websocket_port: 8443
+  use_ipv4: true
+  udp:
+    public_ip: 127.0.0.1
+  ssl:
+    require_ssl: true
+    pem_certificate: ${HOME}/.vnc/cert.pem
+    pem_key: ${HOME}/.vnc/key.pem
+
+desktop:
+  resolution:
+    width: ${KASMVNC_RES_W}
+    height: ${KASMVNC_RES_H}
+  allow_resize: true
+
+encoding:
+  max_frame_rate: ${KASMVNC_FPS}
+  rect_encoding_mode:
+    min_quality: 4
+    max_quality: 7
+  video_encoding_mode:
+    jpeg_quality: 3
+    webp_quality: 3
+    max_resolution:
+      width: 854
+      height: 480
+    enter_video_encoding_mode:
+      time_threshold: 1
+      area_threshold: 25%
+    exit_video_encoding_mode:
+      time_threshold: 3
+    scaling_algorithm: progressive_bilinear
+
+runtime_configuration:
+  allow_client_to_override_kasm_server_settings: true
+  allow_override_standard_vnc_server_settings: true

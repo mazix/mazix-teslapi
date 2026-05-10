@@ -1,0 +1,17 @@
+# TTL/HopLimit rewrite to defeat carrier tethering detection.
+#
+# iPhone Personal Hotspot decrements TTL by 1 when forwarding.
+# Native iPhone packets leave with TTL=64; tethered packets from a
+# Linux box (default TTL=64) arrive at the carrier with TTL=63 → flagged.
+# Setting TTL=65 here means iPhone forwards as 64 → indistinguishable.
+#
+# Rule applies to whatever interface is detected as the iPhone tether
+# (substituted in by 04-routing-bypass.sh).
+
+table inet ttlfix {
+  chain mangle_post {
+    type filter hook postrouting priority mangle; policy accept;
+    oifname "${TETHER_IFACE}" ip ttl set 65
+    oifname "${TETHER_IFACE}" ip6 hoplimit set 65
+  }
+}

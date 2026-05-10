@@ -1,0 +1,10 @@
+#!/bin/sh
+# Pi OS LXDE-pi session for KasmVNC.
+set -x
+xrdb $HOME/.Xresources 2>/dev/null
+xsetroot -cursor_name left_ptr &
+unset SESSION_MANAGER
+unset DBUS_SESSION_BUS_ADDRESS
+export XDG_CURRENT_DESKTOP=LXDE
+export XDG_SESSION_DESKTOP=rpd-x
+exec dbus-launch --exit-with-session lxsession -s rpd-x -e LXDE
