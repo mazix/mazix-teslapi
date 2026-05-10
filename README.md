@@ -138,6 +138,22 @@ Everything is driven by `config.env`. The most common knobs:
 - [`docs/customization.md`](docs/customization.md) — alternate domains, SSIDs,
   multiple hotspots, etc.
 
+## Roadmap
+
+See [`ROADMAP.md`](ROADMAP.md) for what's coming next:
+
+- **HDMI capture** — PlayStation, Apple TV, Android TV, laptops, anything
+  with HDMI out, displayed inside Tesla's browser.
+- **CarPlay & Android Auto** via USB wireless dongle + a small web app on
+  the Pi (no HDMI loop, native protocol).
+- OBD-II overlay, backup cam, multi-zone audio, companion mobile app, and
+  more.
+
+⚠️ Some of these features can be used while the car is in motion. **That's
+your call — not the project's.** See the safety notes in
+[`ROADMAP.md`](ROADMAP.md#-safety--responsibility); the maintainers
+disclaim liability for how, where and when you use it.
+
 ## License
 
 MIT. See [LICENSE](LICENSE).
