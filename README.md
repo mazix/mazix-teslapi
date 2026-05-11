@@ -9,13 +9,18 @@ remote desktop that the car can open by name (no port number, valid TLS).
 
 ## What you get
 
-- Pi as **Wi-Fi access point** (NetworkManager `shared` mode).
+- Pi as **Wi-Fi access point** (NetworkManager `shared` mode) on a
+  RFC 5737 TEST-NET range, chosen to bypass Tesla Chromium's Private Network
+  Access check (see [docs/troubleshooting.md](docs/troubleshooting.md)).
 - **iPhone Personal Hotspot over USB** as upstream — TTL rewritten to 65 so
   your carrier sees TTL=64 (looks native to the iPhone).
 - **KasmVNC** browser remote desktop (LXDE-pi), reachable as
-  `https://your.domain` (port 443→8443 redirect).
-- **Let's Encrypt** cert via Cloudflare DNS-01. No public A record needed —
-  the Pi's hotspot DNS hijacks `your.domain` to its local IP.
+  `https://your.domain` (port 443→8443 redirect, 80→443 redirector for
+  browsers that try HTTP first).
+- **Let's Encrypt** cert via Cloudflare DNS-01. A public DNS-only A record
+  on your Cloudflare zone points the hostname at the Pi's hotspot IP — this
+  is required so DoH-using clients (Tesla, macOS Private Relay, Chrome
+  Secure DNS) get the same answer the Pi's local dnsmasq would have given.
 - **Bluetooth audio source** (PipeWire/BlueZ) advertised as a phone, so Tesla
   accepts it for media playback.
 - A small **Tk GUI** on the Pi desktop to pair Bluetooth devices without
@@ -32,8 +37,9 @@ remote desktop that the car can open by name (no port number, valid TLS).
               │ Hotspot │  eth1      │                        │
               └─────────┘  ipheth    │  ┌──────────────────┐  │  Wi-Fi   ┌────────┐
                                      │  │ NM hotspot       │◄─┼──────────┤ Tesla  │
-                                     │  │ wlan0=10.42.0.1  │  │          │ Browser│
-                                     │  │ shared (NAT/DHCP │  │          └────────┘
+                                     │  │ wlan0=198.51.100 │  │          │ Browser│
+                                     │  │ .1 (TEST-NET-2)  │  │          └────────┘
+                                     │  │ shared (NAT/DHCP │  │
                                      │  │ + dnsmasq)       │  │
                                      │  └────────┬─────────┘  │
                                      │           │            │
@@ -62,6 +68,8 @@ remote desktop that the car can open by name (no port number, valid TLS).
 - **Raspberry Pi 5** with **Raspberry Pi OS Trixie** (X11 session — the
   installer flips the system off Wayland for you).
 - A **domain you own** with DNS managed at **Cloudflare**.
+- A **public DNS-only A record** for the hostname pointing at the Pi's
+  hotspot IP (default `198.51.100.1`). See [docs/prerequisites.md].
 - A **Cloudflare API token** scoped to *Edit zone DNS* on that zone.
 - An iPhone with **unlimited cellular data** (this is for routing through
   cellular without tripping hotspot quotas — not for piracy).

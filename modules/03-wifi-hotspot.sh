@@ -4,9 +4,15 @@
 load_config
 require_sudo
 
-step "03 — Wi-Fi hotspot ($HOTSPOT_SSID)"
+step "03 — Wi-Fi hotspot ($HOTSPOT_SSID @ $HOTSPOT_IP)"
 
 CON_NAME="pi-hotspot"
+
+# Force the gateway IP. Without ipv4.addresses set, NM's `shared` mode falls
+# back to 10.42.0.1/24, which is RFC 1918 and is rejected by Chromium's
+# Private Network Access check on Tesla browsers (public-domain → private-IP
+# resolution is blocked). HOTSPOT_IP defaults to TEST-NET-2 to dodge that.
+HOTSPOT_CIDR="${HOTSPOT_IP}/24"
 
 if nmcli -t -f NAME connection show | grep -qx "$CON_NAME"; then
   log "Connection $CON_NAME exists; updating settings"
@@ -15,6 +21,7 @@ if nmcli -t -f NAME connection show | grep -qx "$CON_NAME"; then
     802-11-wireless.mode ap \
     802-11-wireless.band "$HOTSPOT_BAND" \
     ipv4.method shared \
+    ipv4.addresses "$HOTSPOT_CIDR" \
     ipv6.method ignore \
     wifi-sec.key-mgmt wpa-psk \
     wifi-sec.proto rsn \
@@ -31,6 +38,7 @@ else
     802-11-wireless.mode ap \
     802-11-wireless.band "$HOTSPOT_BAND" \
     ipv4.method shared \
+    ipv4.addresses "$HOTSPOT_CIDR" \
     ipv6.method ignore \
     wifi-sec.key-mgmt wpa-psk \
     wifi-sec.proto rsn \
