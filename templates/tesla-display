@@ -1,0 +1,102 @@
+#!/bin/bash
+# tesla-display — switch between two remote-display backends:
+#   kasmvnc : Xvnc on :1, software rendering, original stack
+#   hwaccel : x11vnc + websockify+noVNC on :0, V3D-accelerated
+#
+# Both stacks stay installed; only one serves :443 at a time. The
+# switch rewrites the nft 443 redirect target and enables/disables the
+# relevant services. Boot-default lives in /etc/tesla-display/active.
+set -euo pipefail
+
+CONFIG="/etc/tesla-display/active"
+NFT_CONF="/etc/nftables.d/port-redirect.conf"
+
+usage() {
+    cat <<EOF
+Usage:
+  tesla-display switch kasmvnc|hwaccel    Switch active backend now
+  tesla-display status                    Show current state
+  tesla-display set-default kasmvnc|hwaccel
+                                          Change boot default only
+
+Active backend = the one whose listener nft 443 redirects to.
+EOF
+    exit 1
+}
+
+current_active() {
+    [ -f "$CONFIG" ] && cat "$CONFIG" || echo "kasmvnc"
+}
+
+write_nft() {
+    local port="$1"
+    sudo mkdir -p "$(dirname "$NFT_CONF")"
+    sudo tee "$NFT_CONF" >/dev/null <<EOF
+# tesla-station port redirect (managed by tesla-display)
+# fib daddr type local restricts to packets aimed at this host.
+table inet portfwd {
+  chain prerouting {
+    type nat hook prerouting priority dstnat; policy accept;
+    fib daddr type local tcp dport 443 redirect to :$port
+  }
+}
+EOF
+    sudo nft delete table inet portfwd 2>/dev/null || true
+    sudo nft -f "$NFT_CONF"
+}
+
+save_default() {
+    sudo mkdir -p "$(dirname "$CONFIG")"
+    echo "$1" | sudo tee "$CONFIG" >/dev/null
+}
+
+switch_to_kasmvnc() {
+    # Stop hwaccel backend (both are system services)
+    sudo systemctl disable --now websockify-tls.service x11vnc.service 2>/dev/null || true
+    # Start kasmvnc (user service, requires linger which module 06 enabled)
+    systemctl --user enable --now kasmvnc.service
+    write_nft 8443
+    save_default kasmvnc
+}
+
+switch_to_hwaccel() {
+    # Stop kasmvnc (user service)
+    systemctl --user disable --now kasmvnc.service 2>/dev/null || true
+    # Start hwaccel backend (both system services so dependency works)
+    sudo systemctl enable --now x11vnc.service
+    sudo systemctl enable --now websockify-tls.service
+    write_nft 8444
+    save_default hwaccel
+}
+
+cmd="${1:-status}"
+case "$cmd" in
+    switch)
+        target="${2:?backend name required: kasmvnc or hwaccel}"
+        case "$target" in
+            kasmvnc) switch_to_kasmvnc; echo "Now active: kasmvnc" ;;
+            hwaccel) switch_to_hwaccel; echo "Now active: hwaccel" ;;
+            *) echo "unknown backend: $target"; usage ;;
+        esac
+        ;;
+    status)
+        echo "Configured default : $(current_active)"
+        echo
+        printf "%-13s : %s\n" "KasmVNC"    "$(systemctl --user is-active kasmvnc.service 2>/dev/null || echo unknown)"
+        printf "%-13s : %s\n" "x11vnc"     "$(systemctl is-active x11vnc.service 2>/dev/null || echo unknown)"
+        printf "%-13s : %s\n" "websockify" "$(systemctl is-active websockify-tls.service 2>/dev/null || echo unknown)"
+        local_port=$(sudo nft list table inet portfwd 2>/dev/null | grep -oP 'redirect to :\K\d+' | head -1 || true)
+        echo
+        printf "%-13s : %s\n" "443 redirect" "${local_port:-none}"
+        ;;
+    set-default)
+        target="${2:?backend name required}"
+        case "$target" in
+            kasmvnc|hwaccel) save_default "$target"; echo "Boot default: $target" ;;
+            *) echo "unknown backend: $target"; usage ;;
+        esac
+        ;;
+    *)
+        usage
+        ;;
+esac

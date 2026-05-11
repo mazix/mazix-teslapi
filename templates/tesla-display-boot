@@ -1,0 +1,42 @@
+#!/bin/bash
+# Boot-time applier for tesla-display backend choice.
+#
+# Runs from a system unit (root, no user DBus session), so we deliberately
+# don't touch the user-level kasmvnc.service — linger already brings it
+# up. We only set the nft 443 redirect and start/stop the system-level
+# hwaccel services (x11vnc + websockify-tls).
+set -e
+
+ACTIVE="$(cat /etc/tesla-display/active 2>/dev/null || echo kasmvnc)"
+NFT_CONF="/etc/nftables.d/port-redirect.conf"
+
+write_nft() {
+    local port="$1"
+    mkdir -p "$(dirname "$NFT_CONF")"
+    cat > "$NFT_CONF" <<EOF
+# tesla-station port redirect (managed by tesla-display)
+table inet portfwd {
+  chain prerouting {
+    type nat hook prerouting priority dstnat; policy accept;
+    fib daddr type local tcp dport 443 redirect to :$port
+  }
+}
+EOF
+    nft delete table inet portfwd 2>/dev/null || true
+    nft -f "$NFT_CONF"
+}
+
+case "$ACTIVE" in
+    kasmvnc)
+        systemctl stop x11vnc.service websockify-tls.service 2>/dev/null || true
+        write_nft 8443
+        ;;
+    hwaccel)
+        systemctl start x11vnc.service websockify-tls.service
+        write_nft 8444
+        ;;
+    *)
+        echo "tesla-display-boot: unknown backend in /etc/tesla-display/active: $ACTIVE" >&2
+        exit 1
+        ;;
+esac

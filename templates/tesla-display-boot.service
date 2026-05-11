@@ -1,0 +1,14 @@
+[Unit]
+Description=Apply tesla-display boot default (which backend serves :443)
+# Run after the network is up and KasmVNC user service has had a chance
+# to settle. Before lightdm? doesn't matter — Xorg :0 is independent.
+After=network-online.target nftables.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/sbin/tesla-display-boot
+
+[Install]
+WantedBy=multi-user.target

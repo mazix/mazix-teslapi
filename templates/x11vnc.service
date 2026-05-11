@@ -1,0 +1,28 @@
+[Unit]
+Description=x11vnc — VNC bridge to the real :0 X server (HDMI + V3D GPU)
+Documentation=https://wiki.archlinux.org/title/x11vnc
+After=display-manager.service network-online.target
+Wants=display-manager.service
+
+[Service]
+Type=simple
+# x11vnc attaches to the LightDM-spawned Xorg on :0 so Chromium and
+# anything else running there gets full V3D hardware acceleration. The
+# auth cookie is the LightDM one; we point at it explicitly.
+ExecStart=/usr/bin/x11vnc \
+    -display :0 \
+    -auth guess \
+    -forever -shared -nopw -loop \
+    -rfbport 5900 \
+    -noipv6 \
+    -noxdamage \
+    -threads
+Restart=on-failure
+RestartSec=3
+# x11vnc needs to be able to read root-owned /var/run/lightdm/root/:0
+# auth file. -auth guess walks the right paths; if that ever stops
+# working, replace with: -auth /var/run/lightdm/root/:0
+User=root
+
+[Install]
+WantedBy=multi-user.target
