@@ -18,15 +18,24 @@
 ## Network
 
 - **A domain you own** with DNS hosted at Cloudflare. Free tier is fine.
-  - **Add a public A record** for the hostname you'll use, pointing at the
-    Pi's hotspot IP — e.g. `pi.your.domain  A  10.42.0.1`, DNS-only (proxy
-    off). The Pi's hotspot dnsmasq also hijacks this name locally, but
-    modern browsers (Tesla's Chromium, macOS with iCloud Private Relay,
-    Chrome/Firefox secure DNS) issue DNS-over-HTTPS queries to public
-    resolvers and bypass the local hijack. Publishing the private IP on
-    public DNS makes both paths return the same answer. The private IP is
-    only reachable from clients joined to the hotspot, so this leaks
-    nothing useful externally.
+  - **Add a public DNS-only A record** for the hostname you'll use,
+    pointing at the Pi's hotspot IP. With the default config that is
+    `pi.your.domain  A  198.51.100.1`, proxy off (gray cloud).
+  - Two reasons we need this record on public DNS:
+    1. Modern browsers (Tesla's Chromium, macOS with iCloud Private
+       Relay, Chrome/Firefox Secure DNS) issue DNS-over-HTTPS queries to
+       public resolvers and **bypass the Pi's local dnsmasq hijack**.
+       Publishing the same answer on public DNS makes both paths
+       consistent.
+    2. The hotspot IP itself is a **TEST-NET / RFC 5737** address
+       (`198.51.100.0/24`), not RFC 1918. We use TEST-NET so Chromium's
+       Private Network Access (PNA) check treats the response as a
+       public address and lets the connection proceed; an RFC 1918
+       answer would be rejected silently on Tesla's browser. See
+       `docs/troubleshooting.md` for the full story.
+  - TEST-NET is not routable on the internet, so this record leaks
+    nothing useful externally — only clients on the Pi's hotspot can
+    reach the IP.
 - **Cloudflare API token**, scoped:
   - Permissions: *Zone → DNS → Edit*
   - Zone Resources: *Include → Specific zone → your-zone.com*
