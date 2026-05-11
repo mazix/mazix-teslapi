@@ -59,14 +59,74 @@ systemctl --user is-active bt-agent.service
 
 ### Tesla refuses to add the Pi as a media device
 
-Tesla checks the device class. The default Pi class is "computer", which
-Tesla won't accept as an audio source. Module 09 sets it to `0x5A020C`
-(smartphone + audio + telephony). If your car still refuses, try:
+This used to recommend a "phone" class (`0x5A020C`) but that turns out
+to be a trap on current Tesla firmware: Tesla pairs the device but
+**only negotiates HFP**, never A2DP, and the Pi shows up only under
+"Phone", not under media sources. The driver-visible failure mode is
+"connection failed" on subsequent pair attempts.
 
-- `0x40020C` (phone, less services advertised)
-- `0x200408` (phone, mobile)
+The reliable class is **`0x240404` (Audio/Video → Headphones)** — Tesla
+treats it as a Bluetooth speaker / media device from the first pair,
+A2DP opens automatically, and the Pi appears in the car's media-source
+list. Set in `config.env`:
 
-Edit `/etc/bluetooth/main.conf`, restart `bluetooth.service`.
+```
+BT_DEVICE_CLASS="0x240404"
+```
+
+then re-run module 09. The module appends `Class = ...` under `[General]`
+if the line is missing (older builds only did `sed s|^#?Class|...|`,
+which was a no-op when the default config shipped without that line).
+
+If you have to switch from a phone class to Headphones on an existing
+install, the cleanest order is:
+
+```bash
+# 1. On Tesla: Settings → Bluetooth → iPhone-Pi → Forget Device
+# 2. On the Pi:
+bluetoothctl remove <TESLA_MAC>
+sudo sed -i 's|^Class = .*|Class = 0x240404|' /etc/bluetooth/main.conf
+sudo systemctl restart bluetooth
+sleep 3
+bluetoothctl pairable on
+bluetoothctl discoverable on
+# 3. On Tesla: Add Device → iPhone-Pi → pair
+```
+
+### Tesla pairs but no audio — A2DP profile is missing
+
+Even with the Headphones class, the *first* connection from Tesla can
+land in `headset-head-unit` (HSP/HFP, mono 16 kHz). The sink format
+`s16le 1ch 16000Hz` is the telltale. Fix is to trust the device and
+reconnect explicitly:
+
+```bash
+bluetoothctl trust <TESLA_MAC>
+bluetoothctl connect <TESLA_MAC>
+```
+
+After that, `pactl list cards | grep "Active Profile"` should report
+`a2dp-sink`, the sink format becomes `s16le 2ch 48000Hz`, and Pi audio
+plays through the car speakers.
+
+The `Pi BT Audio` GUI installed by module 10 wraps all three steps
+(Pair → Trust → Connect → Set as Audio Out) as buttons on the desktop
+icon — easier than the CLI once you've used it once.
+
+### Tesla says "connection failed" when pairing
+
+Usually one of:
+
+1. **Pi's Discoverable window expired** — only 180 seconds by default.
+   Re-arm with `bluetoothctl discoverable on`.
+2. **Stale cache on Tesla** — if the Pi was previously paired under a
+   different class (e.g. you migrated from `0x5A020C` to `0x240404`),
+   Tesla still has the old link key and rejects the fresh pair. Forget
+   the device on Tesla first, then `bluetoothctl remove` on the Pi,
+   then start a fresh discoverable window.
+3. **bt-agent not registered** — `journalctl --user -u bt-agent` should
+   show "Agent registered" and "Default agent requested". Restart
+   `bt-agent.service` if missing.
 
 ### "BT button doesn't open the app — pcmanfm asks Execute / Run in Terminal"
 

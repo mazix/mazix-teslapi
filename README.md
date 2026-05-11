@@ -21,8 +21,11 @@ remote desktop that the car can open by name (no port number, valid TLS).
   on your Cloudflare zone points the hostname at the Pi's hotspot IP — this
   is required so DoH-using clients (Tesla, macOS Private Relay, Chrome
   Secure DNS) get the same answer the Pi's local dnsmasq would have given.
-- **Bluetooth audio source** (PipeWire/BlueZ) advertised as a phone, so Tesla
-  accepts it for media playback.
+- **Bluetooth audio source** (PipeWire/BlueZ) advertised as a Headphones-
+  class device (`0x240404`). Tesla treats the Pi as a media source and
+  opens A2DP automatically on connect. Phone-class advertisement looks
+  intuitive but Tesla then refuses A2DP — see
+  [docs/troubleshooting.md](docs/troubleshooting.md).
 - A small **Tk GUI** on the Pi desktop to pair Bluetooth devices without
   opening a terminal.
 - Headless boot — `loginctl enable-linger` + systemd user services, everything
@@ -57,7 +60,7 @@ remote desktop that the car can open by name (no port number, valid TLS).
                                      │                        │
                                      │  ┌──────────────────┐  │  A2DP
                                      │  │ PipeWire/BlueZ   ├──┼─────────► Tesla
-                                     │  │ Class=0x5A020C   │  │
+                                     │  │ Class=0x240404   │  │
                                      │  │ + bt-agent + GUI │  │
                                      │  └──────────────────┘  │
                                      └────────────────────────┘
@@ -110,7 +113,7 @@ To run a single step:
 | 06 | `06-kasmvnc.sh` | Installs KasmVNC, xstartup (LXDE-pi `rpd-x`), user systemd service |
 | 07 | `07-letsencrypt.sh` | acme.sh + Cloudflare DNS-01 issues your cert |
 | 08 | `08-dns-hijack.sh` | NM hotspot dnsmasq resolves your domain to the Pi |
-| 09 | `09-bluetooth-audio.sh` | BT class = phone, persistent pairing agent, BlueZ + PipeWire |
+| 09 | `09-bluetooth-audio.sh` | BT class = Headphones (so Tesla opens A2DP), persistent pairing agent, BlueZ + PipeWire |
 | 10 | `10-bt-gui.sh` | `btaudio.py` Tk GUI + desktop launcher |
 
 Each module is idempotent — re-run as many times as you like.
@@ -129,7 +132,8 @@ Everything is driven by `config.env`. The most common knobs:
 - `DOMAIN` — pick anything on a Cloudflare-managed zone you own.
 - `HOTSPOT_SSID` / `HOTSPOT_PASSWORD` — the Wi-Fi the car joins.
 - `KASMVNC_RES_W` / `KASMVNC_RES_H` — virtual desktop resolution.
-- `BT_DEVICE_CLASS` — `0x5A020C` (smartphone) is what Tesla accepts; if your
+- `BT_DEVICE_CLASS` — `0x240404` (Audio/Video Headphones) is what makes
+  Tesla open A2DP on first connect. If your
   car is fussy, [tweak the class bits](docs/troubleshooting.md).
 
 ## Uninstall
