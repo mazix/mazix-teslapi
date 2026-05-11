@@ -10,6 +10,18 @@ set -euo pipefail
 
 CONFIG="/etc/tesla-display/active"
 NFT_CONF="/etc/nftables.d/port-redirect.conf"
+PI_UID=1000
+
+# user_systemctl: dispatch a `systemctl --user` for pi regardless of whether
+# we're running as pi or as root (the GUI calls us via sudo). Linger keeps
+# pi's user manager alive even with no login session.
+user_systemctl() {
+    if [ "$(id -u)" = "$PI_UID" ]; then
+        systemctl --user "$@"
+    else
+        runuser -u pi -- env XDG_RUNTIME_DIR="/run/user/$PI_UID" systemctl --user "$@"
+    fi
+}
 
 usage() {
     cat <<EOF
@@ -54,14 +66,14 @@ switch_to_kasmvnc() {
     # Stop hwaccel backend (both are system services)
     sudo systemctl disable --now websockify-tls.service x11vnc.service 2>/dev/null || true
     # Start kasmvnc (user service, requires linger which module 06 enabled)
-    systemctl --user enable --now kasmvnc.service
+    user_systemctl enable --now kasmvnc.service
     write_nft 8443
     save_default kasmvnc
 }
 
 switch_to_hwaccel() {
     # Stop kasmvnc (user service)
-    systemctl --user disable --now kasmvnc.service 2>/dev/null || true
+    user_systemctl disable --now kasmvnc.service 2>/dev/null || true
     # Start hwaccel backend (both system services so dependency works)
     sudo systemctl enable --now x11vnc.service
     sudo systemctl enable --now websockify-tls.service
@@ -82,9 +94,9 @@ case "$cmd" in
     status)
         echo "Configured default : $(current_active)"
         echo
-        printf "%-13s : %s\n" "KasmVNC"    "$(systemctl --user is-active kasmvnc.service 2>/dev/null || echo unknown)"
-        printf "%-13s : %s\n" "x11vnc"     "$(systemctl is-active x11vnc.service 2>/dev/null || echo unknown)"
-        printf "%-13s : %s\n" "websockify" "$(systemctl is-active websockify-tls.service 2>/dev/null || echo unknown)"
+        printf "%-13s : %s\n" "KasmVNC"    "$(user_systemctl is-active kasmvnc.service 2>/dev/null)"
+        printf "%-13s : %s\n" "x11vnc"     "$(systemctl is-active x11vnc.service 2>/dev/null)"
+        printf "%-13s : %s\n" "websockify" "$(systemctl is-active websockify-tls.service 2>/dev/null)"
         local_port=$(sudo nft list table inet portfwd 2>/dev/null | grep -oP 'redirect to :\K\d+' | head -1 || true)
         echo
         printf "%-13s : %s\n" "443 redirect" "${local_port:-none}"

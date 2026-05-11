@@ -43,6 +43,26 @@ if [[ ! -f /etc/tesla-display/active ]]; then
     echo "kasmvnc" | sudo tee /etc/tesla-display/active >/dev/null
 fi
 
+log "Installing GUI switcher + desktop launcher"
+GUI_DIR="$HOME/tesla-display-gui"
+mkdir -p "$GUI_DIR" "$HOME/Desktop"
+cp "$PROJECT_ROOT/templates/tesla-display-gui.py" "$GUI_DIR/tesla-display-gui.py"
+chmod +x "$GUI_DIR/tesla-display-gui.py"
+INSTALL_DIR="$GUI_DIR" envsubst < "$PROJECT_ROOT/templates/tesla-display-gui.desktop.tmpl" \
+    > "$HOME/Desktop/tesla-display-gui.desktop"
+chmod +x "$HOME/Desktop/tesla-display-gui.desktop"
+DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$(id -u)/bus" \
+    gio set "$HOME/Desktop/tesla-display-gui.desktop" "metadata::trusted" true 2>/dev/null || true
+
+log "Granting pi NOPASSWD sudo for tesla-display only (GUI needs it)"
+sudo tee /etc/sudoers.d/tesla-display >/dev/null <<'EOF'
+# Allow the tesla-display GUI to switch backends without prompting.
+# Scope is locked to this single command; no other sudo privileges.
+pi ALL=(ALL) NOPASSWD: /usr/local/bin/tesla-display
+EOF
+sudo chmod 0440 /etc/sudoers.d/tesla-display
+sudo visudo -c -f /etc/sudoers.d/tesla-display
+
 log "Disabling HDMI screen blanking persistently"
 sudo tee /etc/xdg/autostart/tesla-display-no-dpms.desktop >/dev/null <<'EOF'
 [Desktop Entry]
