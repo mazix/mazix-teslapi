@@ -1,9 +1,15 @@
 # Redirect TCP 443 → 8443 so users can hit https://domain without :8443.
 # KasmVNC keeps running unprivileged on 8443.
+#
+# `fib daddr type local` restricts the redirect to packets actually
+# destined for this host. Without it, forwarded traffic (e.g. a hotspot
+# client browsing https://youtube.com) is also caught here, gets
+# redirected to KasmVNC, and the browser sees a CN mismatch on every
+# HTTPS site.
 
 table inet portfwd {
   chain prerouting {
     type nat hook prerouting priority dstnat; policy accept;
-    tcp dport 443 redirect to :8443
+    fib daddr type local tcp dport 443 redirect to :8443
   }
 }
