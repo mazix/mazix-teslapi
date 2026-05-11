@@ -18,8 +18,15 @@
 ## Network
 
 - **A domain you own** with DNS hosted at Cloudflare. Free tier is fine.
-  - You don't need a public A record; the Pi's hotspot DNS will resolve the
-    name locally.
+  - **Add a public A record** for the hostname you'll use, pointing at the
+    Pi's hotspot IP — e.g. `pi.your.domain  A  10.42.0.1`, DNS-only (proxy
+    off). The Pi's hotspot dnsmasq also hijacks this name locally, but
+    modern browsers (Tesla's Chromium, macOS with iCloud Private Relay,
+    Chrome/Firefox secure DNS) issue DNS-over-HTTPS queries to public
+    resolvers and bypass the local hijack. Publishing the private IP on
+    public DNS makes both paths return the same answer. The private IP is
+    only reachable from clients joined to the hotspot, so this leaks
+    nothing useful externally.
 - **Cloudflare API token**, scoped:
   - Permissions: *Zone → DNS → Edit*
   - Zone Resources: *Include → Specific zone → your-zone.com*

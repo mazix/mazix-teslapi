@@ -124,6 +124,58 @@ sudo nmcli connection down pi-hotspot
 sudo nmcli connection up pi-hotspot
 ```
 
+### Mac says `DNS_PROBE_FINISHED_NXDOMAIN`, Tesla says `ERR_CONNECTION_REFUSED`
+
+Both symptoms point at the same root cause: the browser is doing DNS over
+HTTPS (Tesla's Chromium, macOS iCloud Private Relay, Chrome's secure DNS)
+and asking a *public* resolver, not the Pi. The public answer is
+`NXDOMAIN` because no public record exists for the name. Tesla's
+"REFUSED" variant is just an artifact of stale local fallback / HTTP retry
+on top of that.
+
+Fix: publish a public A record at Cloudflare for the hostname pointing at
+the Pi's hotspot IP (`10.42.0.1`), DNS-only / proxy off. Once it
+propagates (TTL 60s), both `nslookup pi.your.domain` against a public
+resolver and the Pi's own dnsmasq return the same answer.
+
+```bash
+# Sanity check from any machine:
+nslookup pi.your.domain 1.1.1.1
+# ;; ANSWER: pi.your.domain. 60 IN A 10.42.0.1
+```
+
+## HTTPS leakage / certificate errors
+
+### Every HTTPS site from a hotspot client shows CN mismatch (`NET::ERR_CERT_COMMON_NAME_INVALID`)
+
+The :443 → :8443 nftables redirect was previously too broad: it had no
+destination filter, so any 443 packet *forwarded* through the Pi was also
+redirected to KasmVNC. The browser then saw the Pi's
+`pi.your.domain` certificate for unrelated sites.
+
+Already fixed in `templates/port-redirect.nft`:
+
+```nft
+fib daddr type local tcp dport 443 redirect to :8443
+```
+
+`fib daddr type local` matches only packets whose destination address
+belongs to this host. If you're on an older checkout, rerun module 05.
+
+### Tesla browser: `ERR_CONNECTION_REFUSED` on `pi.your.domain`, but Mac is fine
+
+Tesla's Chromium tries `http://` before `https://` when no HSTS entry
+exists. With nothing on :80 the kernel sends TCP RST and the browser
+shows REFUSED. Modern Chrome/macOS use HTTPS-First and never see this.
+
+Module 05 now ships a tiny Python redirector on :80 that returns
+`301 → https://`. Verify:
+
+```bash
+systemctl status http-redirect.service
+curl -sI http://pi.your.domain   # expect: HTTP/1.0 301 + Location: https://...
+```
+
 ### Let's Encrypt issuance fails with "DNS problem"
 
 Cloudflare token might lack edit permission on the zone. Re-create with
