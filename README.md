@@ -115,8 +115,15 @@ To run a single step:
 | 08 | `08-dns-hijack.sh` | NM hotspot dnsmasq resolves your domain to the Pi |
 | 09 | `09-bluetooth-audio.sh` | BT class = Headphones (so Tesla opens A2DP), persistent pairing agent, BlueZ + PipeWire |
 | 10 | `10-bt-gui.sh` | `btaudio.py` Tk GUI + desktop launcher |
+| 11 | `11-hwaccel-display.sh` | *Optional* second backend (`x11vnc + noVNC` on `:0`, V3D-accelerated) + `tesla-display` switcher CLI + Tk GUI (`Display Backend` desktop icon) |
 
 Each module is idempotent — re-run as many times as you like.
+
+Module 11 is opt-in. After install both stacks are present but only
+KasmVNC serves `:443`; switch with `tesla-display switch hwaccel`
+(or the GUI) when you want V3D acceleration on `:0`. See
+[`docs/troubleshooting.md`](docs/troubleshooting.md) for when each
+backend wins.
 
 ## After install
 
@@ -124,6 +131,9 @@ Each module is idempotent — re-run as many times as you like.
 - Browser: visit `https://<DOMAIN>` (or with `:443` explicit if you like).
 - Audio: open the **BT Audio Manager** icon on the Pi desktop, scan,
   pair Tesla / a Bluetooth speaker, then "Set as Audio Out".
+- Display backend: KasmVNC is default; switch to hwaccel with
+  `tesla-display switch hwaccel` (or the **Display Backend** icon on
+  the desktop). `tesla-display status` shows the current state.
 
 ## Customization
 
@@ -146,9 +156,11 @@ Everything is driven by `config.env`. The most common knobs:
 
 - [`docs/architecture.md`](docs/architecture.md) — packet/data flow.
 - [`docs/prerequisites.md`](docs/prerequisites.md) — checklist before install.
-- [`docs/troubleshooting.md`](docs/troubleshooting.md) — every footgun we hit.
+- [`docs/troubleshooting.md`](docs/troubleshooting.md) — every footgun we hit,
+  including the Tesla PNA and A2DP write-ups.
 - [`docs/customization.md`](docs/customization.md) — alternate domains, SSIDs,
   multiple hotspots, etc.
+- [`CHANGELOG.md`](CHANGELOG.md) — what landed when, with commit references.
 
 ## Roadmap
 
