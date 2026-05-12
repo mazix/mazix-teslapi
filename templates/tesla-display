@@ -6,6 +6,17 @@
 # Both stacks stay installed; only one serves :443 at a time. The
 # switch rewrites the nft 443 redirect target and enables/disables the
 # relevant services. Boot-default lives in /etc/tesla-display/active.
+#
+# Self-elevate: every code path here needs root (sudo systemctl / sudo
+# nft / sudo tee). When invoked from the GUI's `sudo subprocess.run`,
+# stdin isn't a TTY so any *inner* sudo silently fails and the switch
+# ends up half-applied. Re-exec ourselves as root immediately via the
+# NOPASSWD rule installed in /etc/sudoers.d/tesla-display, then every
+# inner `sudo X` is root-to-root and just works.
+if [ "${EUID:-$(id -u)}" -ne 0 ]; then
+    exec sudo -n "$0" "$@"
+fi
+
 set -euo pipefail
 
 CONFIG="/etc/tesla-display/active"
@@ -40,10 +51,14 @@ current_active() {
     [ -f "$CONFIG" ] && cat "$CONFIG" || echo "kasmvnc"
 }
 
+# From here on every command runs as root (see self-elevate at top),
+# so inner `sudo X` would re-enter sudo — and Pi's sudoers can require
+# a TTY, which kills the GUI path. Call the binaries directly instead.
+
 write_nft() {
     local port="$1"
-    sudo mkdir -p "$(dirname "$NFT_CONF")"
-    sudo tee "$NFT_CONF" >/dev/null <<EOF
+    mkdir -p "$(dirname "$NFT_CONF")"
+    cat > "$NFT_CONF" <<EOF
 # tesla-station port redirect (managed by tesla-display)
 # fib daddr type local restricts to packets aimed at this host.
 table inet portfwd {
@@ -53,32 +68,42 @@ table inet portfwd {
   }
 }
 EOF
-    sudo nft delete table inet portfwd 2>/dev/null || true
-    sudo nft -f "$NFT_CONF"
+    nft delete table inet portfwd 2>/dev/null || true
+    nft -f "$NFT_CONF"
 }
 
 save_default() {
-    sudo mkdir -p "$(dirname "$CONFIG")"
-    echo "$1" | sudo tee "$CONFIG" >/dev/null
+    mkdir -p "$(dirname "$CONFIG")"
+    printf '%s\n' "$1" > "$CONFIG"
 }
 
 switch_to_kasmvnc() {
-    # Stop hwaccel backend (both are system services)
-    sudo systemctl disable --now websockify-tls.service x11vnc.service 2>/dev/null || true
-    # Start kasmvnc (user service, requires linger which module 06 enabled)
+    # Stop hwaccel backend (system services; we're root)
+    systemctl disable --now websockify-tls.service x11vnc.service 2>/dev/null || true
+    # Start kasmvnc (user service; linger keeps pi's user manager alive)
     user_systemctl enable --now kasmvnc.service
     write_nft 8443
     save_default kasmvnc
+    # Safety net: if user-service start silently no-op'd (seen twice in
+    # production via GUI sudo path), retry once.
+    user_systemctl is-active kasmvnc.service >/dev/null 2>&1 \
+        || user_systemctl start kasmvnc.service
 }
 
 switch_to_hwaccel() {
     # Stop kasmvnc (user service)
     user_systemctl disable --now kasmvnc.service 2>/dev/null || true
-    # Start hwaccel backend (both system services so dependency works)
-    sudo systemctl enable --now x11vnc.service
-    sudo systemctl enable --now websockify-tls.service
+    # Start hwaccel backend
+    systemctl enable --now x11vnc.service
+    systemctl enable --now websockify-tls.service
     write_nft 8444
     save_default hwaccel
+    # Safety net mirrors switch_to_kasmvnc — retry if the unit isn't
+    # active after enable --now.
+    systemctl is-active x11vnc.service >/dev/null 2>&1 \
+        || systemctl start x11vnc.service
+    systemctl is-active websockify-tls.service >/dev/null 2>&1 \
+        || systemctl start websockify-tls.service
 }
 
 cmd="${1:-status}"
@@ -97,7 +122,7 @@ case "$cmd" in
         printf "%-13s : %s\n" "KasmVNC"    "$(user_systemctl is-active kasmvnc.service 2>/dev/null)"
         printf "%-13s : %s\n" "x11vnc"     "$(systemctl is-active x11vnc.service 2>/dev/null)"
         printf "%-13s : %s\n" "websockify" "$(systemctl is-active websockify-tls.service 2>/dev/null)"
-        local_port=$(sudo nft list table inet portfwd 2>/dev/null | grep -oP 'redirect to :\K\d+' | head -1 || true)
+        local_port=$(nft list table inet portfwd 2>/dev/null | grep -oP 'redirect to :\K\d+' | head -1 || true)
         echo
         printf "%-13s : %s\n" "443 redirect" "${local_port:-none}"
         ;;
