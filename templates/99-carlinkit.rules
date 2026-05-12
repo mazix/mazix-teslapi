@@ -1,0 +1,10 @@
+# Allow the logged-in user (and members of plugdev) to talk to the Carlinkit
+# CCPA / CPC200 dongle over WebUSB without root. TAG+="uaccess" hooks into
+# systemd-logind so the active console user owns the device node.
+# Place at /etc/udev/rules.d/99-carlinkit.rules and `udevadm trigger`.
+
+# CPC200-CCPA (Magic Communication Auto Box)
+SUBSYSTEM=="usb", ATTRS{idVendor}=="1314", ATTRS{idProduct}=="1521", MODE="0660", GROUP="plugdev", TAG+="uaccess"
+
+# Older Carlinkit variants — same rule, kept for portability
+SUBSYSTEM=="usb", ATTRS{idVendor}=="1314", ATTRS{idProduct}=="1520", MODE="0660", GROUP="plugdev", TAG+="uaccess"

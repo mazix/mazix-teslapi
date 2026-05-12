@@ -1,0 +1,19 @@
+[Unit]
+Description=Static HTTP server for the CarPlay/Android Auto web app (localhost only)
+After=network-online.target
+
+[Service]
+Type=simple
+# Python's http.server is enough — the app is a static SPA and WebUSB does the
+# heavy lifting from the browser, bypassing any backend. Bind to loopback only;
+# Chromium kiosk opens http://localhost:5005 which is a "secure context" so
+# WebUSB API is enabled. (HTTPS or localhost are the only WebUSB origins.)
+WorkingDirectory=/home/pi/carplay/web-dist
+ExecStart=/usr/bin/python3 -m http.server 5005 --bind 127.0.0.1
+Restart=on-failure
+RestartSec=3
+User=pi
+Group=pi
+
+[Install]
+WantedBy=multi-user.target

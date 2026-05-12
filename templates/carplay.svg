@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <defs>
+    <linearGradient id="dash" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1f2933"/>
+      <stop offset="1" stop-color="#0b1320"/>
+    </linearGradient>
+    <linearGradient id="screen" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3aa56a"/>
+      <stop offset="0.5" stop-color="#2db360"/>
+      <stop offset="1" stop-color="#1a8048"/>
+    </linearGradient>
+  </defs>
+
+  <!-- car silhouette body -->
+  <rect x="10" y="44" width="108" height="56" rx="14" fill="url(#dash)"/>
+
+  <!-- windshield-ish strip -->
+  <path d="M 22 50 L 106 50 L 96 64 L 32 64 Z" fill="#1a8aef" opacity="0.6"/>
+
+  <!-- center display (the "CarPlay screen") -->
+  <rect x="34" y="56" width="60" height="38" rx="4" fill="url(#screen)" stroke="#1a8048" stroke-width="1.5"/>
+
+  <!-- app grid on screen: 6 little tiles -->
+  <g fill="#ffffff" opacity="0.92">
+    <rect x="40" y="62" width="9" height="9" rx="2"/>
+    <rect x="52" y="62" width="9" height="9" rx="2"/>
+    <rect x="64" y="62" width="9" height="9" rx="2"/>
+    <rect x="76" y="62" width="9" height="9" rx="2"/>
+    <rect x="40" y="76" width="9" height="9" rx="2"/>
+    <rect x="52" y="76" width="9" height="9" rx="2"/>
+    <rect x="64" y="76" width="9" height="9" rx="2"/>
+    <rect x="76" y="76" width="9" height="9" rx="2"/>
+  </g>
+
+  <!-- wheels -->
+  <circle cx="32" cy="104" r="10" fill="#0b1320" stroke="#2a3340" stroke-width="2"/>
+  <circle cx="32" cy="104" r="4" fill="#5a6470"/>
+  <circle cx="96" cy="104" r="10" fill="#0b1320" stroke="#2a3340" stroke-width="2"/>
+  <circle cx="96" cy="104" r="4" fill="#5a6470"/>
+
+  <!-- "Auto" antenna stub on top, in green -->
+  <rect x="62" y="30" width="4" height="14" fill="#3aa56a"/>
+  <circle cx="64" cy="28" r="4" fill="#3aa56a"/>
+
+  <!-- title under car -->
+  <text x="64" y="124" text-anchor="middle"
+        font-family="DejaVu Sans, sans-serif" font-weight="bold"
+        font-size="10" fill="#1f2933">CarPlay / AA</text>
+</svg>
