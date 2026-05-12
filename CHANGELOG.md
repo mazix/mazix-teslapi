@@ -6,6 +6,35 @@ marked **live-only** were applied to the running Pi but not committed to
 the repo (yet) — they're either user-specific (Turkish keyboard layout)
 or out-of-scope tweaks (mate-polkit duplicate suppression).
 
+## 2026-05-12 — HDMI capture + CarPlay/AA kiosks land
+
+### Added
+- **HDMI capture viewer** (module 12). One-tap fullscreen of a USB HDMI
+  capture stick (tested MS2109) via `mpv av://v4l2:/dev/video0`. Auto-
+  detects the dongle's USB audio source by name and `pactl module-loopback`
+  routes it to the active default sink — so a Xiaomi TV Stick plays to
+  whatever the user has wired (BT-to-Tesla, BT speaker, local HDMI).
+  Custom HDMI-plug SVG icon, semi-transparent Tk close-X overlay in the
+  bottom-right that survives mpv's fullscreen window. ([8ffd5c4])
+- **CarPlay / Android Auto kiosk** (module 13). Carlinkit CPC200-CCPA
+  dongle. `node-CarPlay`'s `carplay-web-app` (React + Web Workers +
+  WebUSB) runs as a Chromium kiosk on `localhost:5005`. No long-running
+  Node bridge — the browser talks the Carlinkit protocol directly via
+  WebUSB. Custom car-with-app-grid SVG icon, same close-X overlay.
+  udev rule grants the logged-in user access to vendor 1314 product
+  1521. Module clones the upstream repo, npm-installs + builds the React
+  SPA, stages it at `~/carplay/web-dist`, wires up a systemd unit, and
+  drops the desktop launcher. ([b880fd1])
+
+### Known open issue
+- CarPlay **audio is silent so far**. Video + touch + handshake work on
+  both KasmVNC (SwiftShader software WebGL) and hwaccel (V3D hardware
+  WebGL) backends. fps 60→30 doesn't change anything; render layer
+  isn't the bottleneck. Hypothesis: AudioWorklet / `pcm-ringbuf-player`
+  isn't reaching the default PulseAudio sink — direct `paplay` to the
+  same sink works fine. Next step: DevTools console during fresh
+  launch to see AudioContext state + `getUserMedia` outcome.
+
 ## 2026-05-12 — GUI + dual-stack polish
 
 ### Added
@@ -145,6 +174,8 @@ redo these by hand.
 If any of these are worth repo'ing, a future module `10b-desktop-tweaks.sh`
 could bundle them.
 
+[b880fd1]: https://github.com/mazix/tesla-pi-station/commit/b880fd1
+[8ffd5c4]: https://github.com/mazix/tesla-pi-station/commit/8ffd5c4
 [9fbd838]: https://github.com/mazix/tesla-pi-station/commit/9fbd838
 [fd5eae9]: https://github.com/mazix/tesla-pi-station/commit/fd5eae9
 [d331605]: https://github.com/mazix/tesla-pi-station/commit/d331605

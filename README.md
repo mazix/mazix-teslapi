@@ -116,6 +116,8 @@ To run a single step:
 | 09 | `09-bluetooth-audio.sh` | BT class = Headphones (so Tesla opens A2DP), persistent pairing agent, BlueZ + PipeWire |
 | 10 | `10-bt-gui.sh` | `btaudio.py` Tk GUI + desktop launcher |
 | 11 | `11-hwaccel-display.sh` | *Optional* second backend (`x11vnc + noVNC` on `:0`, V3D-accelerated) + `tesla-display` switcher CLI + Tk GUI (`Display Backend` desktop icon) |
+| 12 | `12-hdmi-capture.sh` | One-tap fullscreen viewer for a USB HDMI capture stick (e.g. MS2109 + Xiaomi TV Stick / Apple TV / console). Auto-routes dongle audio via PipeWire loopback to the default sink. |
+| 13 | `13-carplay.sh` | CarPlay / Android Auto kiosk via Carlinkit CCPA. Clones + builds `node-CarPlay`'s React `carplay-web-app`, serves it on `localhost:5005`, Chromium kiosk talks WebUSB to the dongle. Video + touch work today; audio is an open issue (see CHANGELOG). |
 
 Each module is idempotent — re-run as many times as you like.
 
