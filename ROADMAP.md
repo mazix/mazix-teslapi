@@ -3,85 +3,70 @@
 A living list of ideas to grow `maziX TeslaPI` from "Pi as Tesla browser"
 into a full mobile entertainment + diagnostics hub.
 
-## ✅ Shipped (v0.1)
+## ✅ Shipped
 
-- Pi as Wi-Fi access point
-- iPhone USB tether as upstream
-- Carrier hotspot detection bypass (TTL/HopLimit=65)
-- KasmVNC remote desktop with Let's Encrypt cert (Cloudflare DNS-01)
-- Domain DNS hijack on hotspot — port-less `https://your.domain`
-- Bluetooth audio source advertised as a phone (Tesla-compatible)
-- Tk GUI for Bluetooth pairing
-- Headless boot via systemd user services + linger
-- Modular, idempotent installer
+**Core (v0.1)**
 
-## 🎮 HDMI capture — bring any HDMI device into the car
+- Pi as Wi-Fi access point on RFC 5737 TEST-NET-2 (bypasses Tesla
+  Chromium's Private Network Access check).
+- iPhone USB tether as upstream.
+- Carrier hotspot detection bypass (TTL/HopLimit=65).
+- KasmVNC remote desktop with Let's Encrypt cert (Cloudflare DNS-01).
+- Domain DNS hijack on hotspot — port-less `https://your.domain`,
+  with a matching public DNS-only A record so DoH-using clients land
+  on the same answer.
+- Bluetooth A2DP source advertised as Audio/Video Headphones
+  (class `0x240404`) — what Tesla actually opens A2DP for, not phone
+  class.
+- Tk GUI for Bluetooth pairing.
+- Headless boot via systemd user services + linger.
+- Modular, idempotent installer.
 
-Plug *anything* with HDMI out into a cheap USB HDMI capture card on the Pi,
-and watch it inside the same Tesla browser tab. Targets we want first-class
-support for:
+**Display (v0.2)**
 
-- 🕹️ **PlayStation / Xbox / Nintendo Switch** — gaming on the road while the
-  car is parked / charging.
-- 📺 **Apple TV** — full tvOS app catalog (Netflix, Apple TV+, AirPlay
-  receiver) without depending on the Tesla's own apps.
-- 🤖 **Android TV / Google TV / Chromecast** — sideload anything, cast from
-  a phone, Smart TV browsers.
-- 💻 **Laptops, mini-PCs, smartphones** with USB-C → HDMI dongles.
+- Optional second display backend: x11vnc + noVNC on `:0` with V3D
+  acceleration (`tesla-display switch hwaccel`), KasmVNC stays default.
+- `tesla-display` CLI + Tk switcher that survives stopping its own
+  parent service (uses `systemd-run --user --scope` to escape the
+  caller's cgroup).
+- Unified **maziX TeslaPI Settings** Tk GUI — Bluetooth, Display, and
+  About in one tabbed window (replaces the two older standalone
+  launchers).
 
-The Pi captures the HDMI stream over v4l2, renders it fullscreen on the X
-session, and KasmVNC streams the result out to the car. Audio rides along
-on either the BT speaker route or back to the car directly.
+**Media (v0.3)**
 
-**Plan:**
+- 🎮 **HDMI capture** ([`modules/12-hdmi-capture.sh`](modules/12-hdmi-capture.sh))
+  — UVC capture stick (MS2109 / MS2130, tested with Apera GA06) →
+  `mpv` fullscreen + PipeWire loopback to default sink (BT → Tesla
+  by default). One-tap desktop launcher with a Tk close overlay so
+  it survives a touchscreen-only session. Targets that have been
+  exercised: Xiaomi TV Stick, Apple TV, generic HDMI sources via
+  USB-C dongles. Console / Switch / PlayStation are the same code
+  path.
+- 📱 **CarPlay / Android Auto** ([`modules/13-carplay.sh`](modules/13-carplay.sh))
+  — Carlinkit CPC200-CCPA (USB `1314:1521`) driven by Chromium kiosk
+  + WebUSB via the React `carplay-web-app` from `node-CarPlay`. No
+  long-running native daemon: the browser handles the Carlinkit
+  protocol + H.264 decode via WebCodecs. Static SPA served by a tiny
+  Python http.server at `localhost:5005`. Video and touch work today.
+  **Audio is the open issue** (see `CHANGELOG.md`) — render path is
+  fine, the loopback chain just never gets a non-silent source on a
+  fresh launch; next step is DevTools console inspection.
 
-- New module `11-hdmi-capture.sh`:
-  - Detect MS2109/MS2130 capture sticks automatically (the cheap UVC ones).
-  - Install `mpv`, `v4l-utils`, `ffmpeg`.
-  - Provide a launcher that runs
-    `mpv av://v4l2:/dev/video0 --fs --profile=low-latency`.
-- Tk GUI `hdmi-input.py`:
-  - List video devices with their supported modes.
-  - Pick resolution / framerate.
-  - "Play" button → fullscreen mpv.
-  - "Audio" routing — mirror device audio to BT speaker / Tesla.
-- Per-source presets (1080p60 / 1080p30 / MJPEG depending on bandwidth).
-- Optional: side-by-side or PiP layout for game + chat / map.
-- Optional: pair BT controllers (DualSense, Xbox Wireless, Switch Pro)
-  directly with the Pi for input passthrough where the source allows it.
+## 🔜 Next up — CarPlay audio + kiosk launcher
 
-## 📱 CarPlay & Android Auto — native web app, no HDMI
+The two things blocking a clean v1.0:
 
-Wireless CarPlay/Android Auto dongles (Carlinkit U2W, AAWireless, Ottocast,
-etc.) pair with the phone over Wi-Fi/BT and present themselves to a *USB
-host* speaking the CarPlay or Android Auto protocol. Instead of going through
-HDMI capture, we plug the dongle straight into the Pi via USB and write a
-small server that:
-
-1. Speaks the dongle's USB protocol (H.264 video + touch + audio).
-2. Decodes the H.264 stream.
-3. Exposes the video and touch surface to a web app (WebSocket + canvas).
-4. Routes audio through PipeWire to the BT speaker / Tesla.
-
-The Tesla browser opens our web app at, say, `https://carplay.your.domain`
-and gets a real CarPlay (or Android Auto) interface — Apple Maps, Spotify,
-WhatsApp, Google Maps, Waze — with touch input working through Tesla's
-touchscreen.
-
-**Plan:**
-
-- New module `12-carplay-server.sh`:
-  - Install Node + a small server based on existing open-source projects
-    (e.g. `node-carplay`, `carplay-receiver`-style protocol implementations).
-  - systemd user service for the server.
-  - nftables drop-in to expose it on its own subdomain / port.
-- Web app `apps/carplay/`:
-  - Renders the H.264 stream in a `<video>` element via MSE / WebCodecs.
-  - Captures pointer / touch events and forwards to the dongle.
-  - Audio: WebRTC track or routed locally on the Pi.
-- Per-dongle profiles (different USB IDs and quirks).
-- Auto-launch from a "CarPlay" / "Android Auto" tile on the Pi desktop.
-- Bluetooth controller / mic passthrough for Siri / Google Assistant.
+1. **Resolve CarPlay audio silence.** Open a fresh Chromium devtools
+   session against the kiosk profile, watch for PcmPlayer / AudioContext
+   warnings (gesture policy, sample rate mismatch, suspended worklet),
+   correlate with the `pactl list short sources` state when the dongle
+   is up. We already auto-load `module-loopback` from the dongle's
+   USB-audio source to the default sink — but the dongle may be
+   pushing audio over its data endpoint instead, in which case the
+   fix is in the web app's PcmPlayer, not on the PipeWire side.
+2. **Kiosk-style home launcher** (described below). Replaces the
+   LXDE desktop as the primary entry point for the car-facing view.
 
 ## 🖥️ Kiosk-style home launcher
 
