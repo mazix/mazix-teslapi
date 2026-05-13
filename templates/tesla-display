@@ -6,7 +6,30 @@
 # Both stacks stay installed; only one serves :443 at a time. The
 # switch rewrites the nft 443 redirect target and enables/disables the
 # relevant services. Boot-default lives in /etc/tesla-display/active.
+# Self-elevate before anything else. Inner write_nft / save_default /
+# systemctl calls all need root; rather than littering the script with
+# `sudo` (which can re-prompt in non-TTY contexts) we re-exec ourselves
+# under NOPASSWD-protected sudo and run the entire script as root.
+if [ "${EUID:-$(id -u)}" -ne 0 ]; then
+    exec sudo -n "$0" "$@"
+fi
+
 set -euo pipefail
+
+# DEBUG: log every invocation so we can see what's happening when the GUI
+# triggers a switch (especially the kasmvnc->hwaccel direction).
+LOG="/tmp/tesla-display.log"
+{
+    echo "=================================================="
+    echo "[$(date '+%H:%M:%S.%3N')] CALL pid=$$ ppid=$PPID euid=$EUID args=[$*]"
+    echo "  caller: $(ps -o comm= -p $PPID 2>/dev/null)"
+} >> "$LOG" 2>&1
+
+log_step() {
+    echo "[$(date '+%H:%M:%S.%3N')] pid=$$ $*" >> "$LOG" 2>&1
+}
+
+trap 'log_step "EXIT exit_code=$?"' EXIT
 
 CONFIG="/etc/tesla-display/active"
 NFT_CONF="/etc/nftables.d/port-redirect.conf"
@@ -42,8 +65,11 @@ current_active() {
 
 write_nft() {
     local port="$1"
-    sudo mkdir -p "$(dirname "$NFT_CONF")"
-    sudo tee "$NFT_CONF" >/dev/null <<EOF
+    # We run as root via sudo from the GUI; inner `sudo X` re-enters sudo
+    # and Pi's sudoers can be TTY-strict in non-interactive paths. Call
+    # the binaries directly instead — equally privileged, more reliable.
+    mkdir -p "$(dirname "$NFT_CONF")"
+    cat > "$NFT_CONF" <<EOF
 # tesla-station port redirect (managed by tesla-display)
 # fib daddr type local restricts to packets aimed at this host.
 table inet portfwd {
@@ -53,32 +79,58 @@ table inet portfwd {
   }
 }
 EOF
-    sudo nft delete table inet portfwd 2>/dev/null || true
-    sudo nft -f "$NFT_CONF"
+    nft delete table inet portfwd 2>/dev/null || true
+    nft -f "$NFT_CONF"
 }
 
 save_default() {
-    sudo mkdir -p "$(dirname "$CONFIG")"
-    echo "$1" | sudo tee "$CONFIG" >/dev/null
+    mkdir -p "$(dirname "$CONFIG")"
+    printf '%s\n' "$1" > "$CONFIG"
 }
 
 switch_to_kasmvnc() {
-    # Stop hwaccel backend (both are system services)
-    sudo systemctl disable --now websockify-tls.service x11vnc.service 2>/dev/null || true
-    # Start kasmvnc (user service, requires linger which module 06 enabled)
+    # set +e block: in the previous version, `set -e` + a `set -euo pipefail`
+    # script + `user_systemctl ... || true` interacted in a way that the
+    # function still aborted at exit_code=1 right after the kasmvnc disable
+    # step on a *third* switch attempt (log captured proof). The fix is to
+    # disable errexit for the whole switch sequence and record each step's
+    # rc so we can see exactly where things go wrong if they do.
+    set +e
+    log_step "switch_to_kasmvnc: stopping hwaccel"
+    systemctl disable --now websockify-tls.service x11vnc.service 2>/dev/null
+    log_step "  rc=$? (stop hwaccel; non-zero ok if already stopped)"
+    log_step "switch_to_kasmvnc: enabling kasmvnc user service"
     user_systemctl enable --now kasmvnc.service
+    log_step "  rc=$? (enable kasmvnc)"
+    log_step "switch_to_kasmvnc: writing nft 8443"
     write_nft 8443
+    log_step "  rc=$? (write_nft 8443)"
+    log_step "switch_to_kasmvnc: save_default kasmvnc"
     save_default kasmvnc
+    log_step "  rc=$? (save_default)"
+    log_step "switch_to_kasmvnc: done"
+    set -e
 }
 
 switch_to_hwaccel() {
-    # Stop kasmvnc (user service)
-    user_systemctl disable --now kasmvnc.service 2>/dev/null || true
-    # Start hwaccel backend (both system services so dependency works)
-    sudo systemctl enable --now x11vnc.service
-    sudo systemctl enable --now websockify-tls.service
+    set +e
+    log_step "switch_to_hwaccel: stopping kasmvnc user service"
+    user_systemctl disable --now kasmvnc.service 2>/dev/null
+    log_step "  rc=$? (disable kasmvnc; non-zero ok if already stopped)"
+    log_step "switch_to_hwaccel: enabling x11vnc"
+    systemctl enable --now x11vnc.service
+    log_step "  rc=$? (enable x11vnc)"
+    log_step "switch_to_hwaccel: enabling websockify-tls"
+    systemctl enable --now websockify-tls.service
+    log_step "  rc=$? (enable websockify-tls)"
+    log_step "switch_to_hwaccel: writing nft 8444"
     write_nft 8444
+    log_step "  rc=$? (write_nft 8444)"
+    log_step "switch_to_hwaccel: save_default hwaccel"
     save_default hwaccel
+    log_step "  rc=$? (save_default)"
+    log_step "switch_to_hwaccel: done"
+    set -e
 }
 
 cmd="${1:-status}"

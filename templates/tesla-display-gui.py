@@ -14,12 +14,45 @@ BACKENDS = (("kasmvnc", "KasmVNC (video-optimized, software render)"),
             ("hwaccel", "Hwaccel (V3D-accelerated :0, IDE/dev work)"))
 
 
+_RUN_LOG = "/tmp/tesla-display-run.log"
+
+
 def run_cli(*args, timeout=20):
+    # Two layered fixes are needed when this GUI runs inside KasmVNC's
+    # X session and an Apply triggers `switch hwaccel`:
+    #
+    # 1) Output redirection to a file (not capture_output / PIPE).
+    #    Without it, when kasmvnc stops, our Tk app dies, the captured
+    #    pipes close, and the subprocess raises SIGPIPE (exit 141) on
+    #    its next echo. We saw that in /tmp/tesla-display.log.
+    #
+    # 2) systemd-run --scope to escape the kasmvnc.service cgroup.
+    #    The Tk app is inside KasmVNC's session, which means *every*
+    #    subprocess spawned from it inherits kasmvnc.service's cgroup
+    #    membership (start_new_session= only changes the POSIX session
+    #    leader, not the systemd cgroup). When the switch later calls
+    #    `systemctl disable --now kasmvnc.service`, systemd SIGTERMs
+    #    the entire cgroup — including the subprocess running the
+    #    switch — and the script dies mid-stop with exit 1 (and never
+    #    even logs its rc). Wrapping in `systemd-run --user --scope`
+    #    promotes the subprocess into its own transient scope under
+    #    user@1000.service, so killing kasmvnc.service no longer drags
+    #    it along.
     try:
-        r = subprocess.run(
-            ["sudo", "-n", "/usr/local/bin/tesla-display", *args],
-            capture_output=True, text=True, timeout=timeout)
-        return (r.returncode == 0, r.stdout + r.stderr)
+        open(_RUN_LOG, "w").close()  # truncate
+        with open(_RUN_LOG, "wb") as out:
+            r = subprocess.run(
+                ["systemd-run", "--user", "--scope", "--quiet", "--collect",
+                 "--", "sudo", "-n", "/usr/local/bin/tesla-display", *args],
+                stdin=subprocess.DEVNULL,
+                stdout=out, stderr=subprocess.STDOUT,
+                timeout=timeout, start_new_session=True)
+        try:
+            with open(_RUN_LOG) as f:
+                output = f.read()
+        except OSError:
+            output = ""
+        return (r.returncode == 0, output)
     except subprocess.TimeoutExpired:
         return (False, "Timeout — tesla-display didn't return in time.")
     except FileNotFoundError as e:
