@@ -26,7 +26,10 @@ MODULES=(
   "07-letsencrypt"
   "08-dns-hijack"
   "09-bluetooth-audio"
-  "10-bt-gui"
+  "11-hwaccel-display"
+  "12-hdmi-capture"
+  "13-carplay"
+  "14-settings-gui"
 )
 
 usage() {
@@ -52,7 +55,7 @@ selected=("${@:-${MODULES[@]}}")
 
 echo
 echo "  ┌─────────────────────────────────────┐"
-echo "  │  tesla-pi-station — installer       │"
+echo "  │  maziX TeslaPI — installer          │"
 echo "  └─────────────────────────────────────┘"
 echo
 

@@ -1,4 +1,4 @@
-# tesla-pi-station
+# maziX TeslaPI
 
 Turn a Raspberry Pi 5 into a self-contained connectivity + media station for a
 Tesla (or anything with a browser): the car connects to the Pi's Wi-Fi, the Pi
@@ -6,6 +6,10 @@ connects to the internet via iPhone USB tether, and the carrier's hotspot
 detection is bypassed so it counts against your unlimited cellular data instead
 of your hotspot quota. The Pi also serves a touch-friendly, browser-based
 remote desktop that the car can open by name (no port number, valid TLS).
+
+> Repository: <https://github.com/mazix/mazix-teslapi>
+> (formerly published as `tesla-pi-station`; GitHub keeps the old URL
+> redirecting for now).
 
 ## What you get
 
@@ -82,8 +86,8 @@ remote desktop that the car can open by name (no port number, valid TLS).
 ## Quick start
 
 ```bash
-git clone https://github.com/<you>/tesla-pi-station.git
-cd tesla-pi-station
+git clone https://github.com/mazix/mazix-teslapi.git
+cd mazix-teslapi
 cp config.example.env config.env
 $EDITOR config.env             # set domain, SSID, password, CF token, email
 

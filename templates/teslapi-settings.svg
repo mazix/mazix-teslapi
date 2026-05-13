@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2b3447"/>
+      <stop offset="1" stop-color="#0e1421"/>
+    </linearGradient>
+    <linearGradient id="gear" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#5fc3ff"/>
+      <stop offset="1" stop-color="#2a8ed4"/>
+    </linearGradient>
+  </defs>
+
+  <!-- background rounded square -->
+  <rect x="4" y="4" width="120" height="120" rx="20" fill="url(#bg)"/>
+
+  <!-- gear (12 teeth, mirror across vertical) -->
+  <g transform="translate(64 64)" fill="url(#gear)" stroke="#0b1320" stroke-width="1.4">
+    <g id="tooth"><rect x="-5" y="-46" width="10" height="14" rx="2"/></g>
+    <use href="#tooth" transform="rotate(30)"/>
+    <use href="#tooth" transform="rotate(60)"/>
+    <use href="#tooth" transform="rotate(90)"/>
+    <use href="#tooth" transform="rotate(120)"/>
+    <use href="#tooth" transform="rotate(150)"/>
+    <use href="#tooth" transform="rotate(180)"/>
+    <use href="#tooth" transform="rotate(210)"/>
+    <use href="#tooth" transform="rotate(240)"/>
+    <use href="#tooth" transform="rotate(270)"/>
+    <use href="#tooth" transform="rotate(300)"/>
+    <use href="#tooth" transform="rotate(330)"/>
+    <circle r="32"/>
+    <circle r="14" fill="#0e1421" stroke="#0b1320"/>
+  </g>
+
+  <!-- maziX TeslaPI mini wordmark in the corner -->
+  <text x="64" y="118" text-anchor="middle"
+        font-family="DejaVu Sans, sans-serif" font-weight="bold"
+        font-size="11" fill="#f4f4f5" letter-spacing="0.5">maziX TeslaPI</text>
+</svg>

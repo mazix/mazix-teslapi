@@ -163,7 +163,7 @@ sequence. Full debugging notes in `docs/troubleshooting.md`.
 ## 2026-05-10 — Initial publication
 
 ### Added
-- **`tesla-pi-station` v0**: full installer modules 01-10 covering Pi
+- **`maziX TeslaPI` v0** (first published as `tesla-pi-station`): full installer modules 01-10 covering Pi
   hotspot (NM `shared`), iPhone USB tether with TTL=65 carrier bypass,
   KasmVNC remote desktop with Let's Encrypt cert via Cloudflare
   DNS-01, dnsmasq hostname hijack, BlueZ + PipeWire BT audio source,
@@ -199,16 +199,16 @@ redo these by hand.
 If any of these are worth repo'ing, a future module `10b-desktop-tweaks.sh`
 could bundle them.
 
-[490bd91]: https://github.com/mazix/tesla-pi-station/commit/490bd91
-[b880fd1]: https://github.com/mazix/tesla-pi-station/commit/b880fd1
-[8ffd5c4]: https://github.com/mazix/tesla-pi-station/commit/8ffd5c4
-[9fbd838]: https://github.com/mazix/tesla-pi-station/commit/9fbd838
-[fd5eae9]: https://github.com/mazix/tesla-pi-station/commit/fd5eae9
-[d331605]: https://github.com/mazix/tesla-pi-station/commit/d331605
-[96a5f3b]: https://github.com/mazix/tesla-pi-station/commit/96a5f3b
-[4f22b3f]: https://github.com/mazix/tesla-pi-station/commit/4f22b3f
-[7db4bd0]: https://github.com/mazix/tesla-pi-station/commit/7db4bd0
-[6ac7336]: https://github.com/mazix/tesla-pi-station/commit/6ac7336
-[64d88be]: https://github.com/mazix/tesla-pi-station/commit/64d88be
-[5d516c9]: https://github.com/mazix/tesla-pi-station/commit/5d516c9
-[1985545]: https://github.com/mazix/tesla-pi-station/commit/1985545
+[490bd91]: https://github.com/mazix/mazix-teslapi/commit/490bd91
+[b880fd1]: https://github.com/mazix/mazix-teslapi/commit/b880fd1
+[8ffd5c4]: https://github.com/mazix/mazix-teslapi/commit/8ffd5c4
+[9fbd838]: https://github.com/mazix/mazix-teslapi/commit/9fbd838
+[fd5eae9]: https://github.com/mazix/mazix-teslapi/commit/fd5eae9
+[d331605]: https://github.com/mazix/mazix-teslapi/commit/d331605
+[96a5f3b]: https://github.com/mazix/mazix-teslapi/commit/96a5f3b
+[4f22b3f]: https://github.com/mazix/mazix-teslapi/commit/4f22b3f
+[7db4bd0]: https://github.com/mazix/mazix-teslapi/commit/7db4bd0
+[6ac7336]: https://github.com/mazix/mazix-teslapi/commit/6ac7336
+[64d88be]: https://github.com/mazix/mazix-teslapi/commit/64d88be
+[5d516c9]: https://github.com/mazix/mazix-teslapi/commit/5d516c9
+[1985545]: https://github.com/mazix/mazix-teslapi/commit/1985545

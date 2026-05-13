@@ -1,6 +1,6 @@
 # Roadmap
 
-A living list of ideas to grow `tesla-pi-station` from "Pi as Tesla browser"
+A living list of ideas to grow `maziX TeslaPI` from "Pi as Tesla browser"
 into a full mobile entertainment + diagnostics hub.
 
 ## ✅ Shipped (v0.1)
@@ -83,6 +83,39 @@ touchscreen.
 - Auto-launch from a "CarPlay" / "Android Auto" tile on the Pi desktop.
 - Bluetooth controller / mic passthrough for Siri / Google Assistant.
 
+## 🖥️ Kiosk-style home launcher
+
+Today, opening anything on the Pi means seeing the LXDE-pi desktop —
+which looks too much like "a PC inside a car". Goal: a **fullscreen
+home grid** that auto-launches on boot, hides the desktop, and lives
+in front of everything else. Big touch tiles ("HDMI", "CarPlay",
+"Settings", "Web", "Music", "Map", …); tap a tile, the relevant
+fullscreen sub-app opens; an always-on-top **Home** overlay button
+brings the grid back. The maziX TeslaPI Settings window becomes one
+of the tiles.
+
+**Plan:**
+
+- New module `15-home-kiosk.sh`.
+- Fullscreen Tk or GTK app, lightdm autostart entry so it greets the
+  user at boot (in front of LXDE).
+- Tile registry — each tile is a `.desktop` file in a known dir
+  (`~/.config/maziX-teslapi/tiles/*.desktop`) with `Name`, `Icon`,
+  `Exec`. Module installers drop their own tile. New apps integrate
+  without editing the launcher.
+- Built-in tiles bind to existing launchers we already have: HDMI
+  Capture (module 12), CarPlay/AA (module 13), maziX TeslaPI Settings
+  (module 14).
+- `Home` overlay button (same transparent X overlay pattern used by
+  HDMI/CarPlay) maps to "close current app, return to grid".
+- DPMS-off autostart from module 11 already keeps the screen alive.
+- Optional secondary view: the same kiosk content served as a web app
+  at `https://your.domain/launcher` so a remote client (the Tesla
+  itself, a phone) can open it without going through KasmVNC.
+
+This will probably replace the desktop icons as the primary entry
+point; the LXDE desktop stays underneath as a fallback / debug surface.
+
 ## 🚗 Future ideas
 
 | Idea | Why | Sketch |
@@ -91,7 +124,7 @@ touchscreen.
 | **Backup / dashcam** | USB webcam → fullscreen viewer with motion detect | UVC cam + a simple recorder |
 | **Multi-zone audio** | Same source to BT speaker *and* car AUX | PipeWire combined-sink |
 | **Companion mobile app** | One-tap launch of YouTube/Disney/etc. + audio routing | Phone web app served by Pi, talks to Pi via local API |
-| **Auto-update** | `tesla-pi-station-update` keeps modules current | systemd timer pulling this repo, runs `install.sh` for changed modules |
+| **Auto-update** | `mazix-teslapi-update` keeps modules current | systemd timer pulling this repo, runs `install.sh` for changed modules |
 | **Wildcard cert** | One cert covers `pi.`, `media.`, `obd.` etc. | Tweak `07-letsencrypt.sh` to issue `*.${DOMAIN}` |
 | **5 GHz hotspot** | Faster, less crowded | Either an external USB Wi-Fi card with AP mode, or Pi 5 firmware updates |
 | **Fail-over upstream** | When iPhone disconnects, fall back to a 4G USB modem | NM connection priorities + dnsmasq restart on link change |
@@ -109,7 +142,7 @@ vehicle is dangerous and is illegal in most jurisdictions — Tesla itself
 disables many of its own infotainment features above 0 km/h for exactly
 this reason.
 
-By using `tesla-pi-station` you accept that:
+By using `maziX TeslaPI` you accept that:
 
 - You alone are responsible for **when, where and how** you use it.
 - The maintainers and contributors **disclaim all liability** for accidents,
