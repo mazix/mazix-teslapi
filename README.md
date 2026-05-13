@@ -70,6 +70,19 @@ remote desktop that the car can open by name (no port number, valid TLS).
                                      └────────────────────────┘
 ```
 
+**Optional media modules** (each plugs onto the same Pi, surfaced through the
+same KasmVNC X session):
+
+```
+   HDMI source ──USB──►  MS2109 / MS2130 capture stick   ──►  v4l2 + mpv  (module 12)
+   (console / Apple TV /   (e.g. Apera GA06)                  audio → PipeWire loopback
+    phone / laptop)                                           → default sink (BT → Tesla)
+
+   Phone ─wireless────►  Carlinkit CPC200-CCPA (1314:1521)──►  Chromium kiosk + WebUSB
+   CarPlay / Android Auto  "Magic Communication Auto Box"      → node-carplay web app (13)
+                                                               audio → PipeWire loopback
+```
+
 ## Requirements
 
 - **Raspberry Pi 5** with **Raspberry Pi OS Trixie** (X11 session — the
@@ -82,6 +95,14 @@ remote desktop that the car can open by name (no port number, valid TLS).
   cellular without tripping hotspot quotas — not for piracy).
 - A USB cable iPhone → Pi.
 - Email for Let's Encrypt registration.
+
+**Optional hardware for the media modules** (each module is opt-in):
+
+- *Module 12 — HDMI capture:* any **MS2109 / MS2130**-based USB capture
+  stick (e.g. [Apera GA06](https://www.trendyol.com/apera/ga06-type-c-3-1-to-hdmi-1080p-60hz-4k-30hz-video-capture-goruntu-yakalama-karti-p-934269466)
+  or any rebrand of the same chipset).
+- *Module 13 — CarPlay / Android Auto:* a [**Carlinkit CPC200-CCPA**](https://www.hepsiburada.com/carlinkit-ccpa-kablosuz-apple-carplay-android-auto-android-multimedya-ekrani-donusturucu-cpc200-ccpa-pm-HBC000059X6G5)
+  wireless dongle (USB ID `1314:1521`, "Magic Communication Auto Box").
 
 ## Quick start
 
@@ -120,8 +141,8 @@ To run a single step:
 | 09 | `09-bluetooth-audio.sh` | BT class = Headphones (so Tesla opens A2DP), persistent pairing agent, BlueZ + PipeWire |
 | 10 | `10-bt-gui.sh` | `btaudio.py` Tk GUI + desktop launcher |
 | 11 | `11-hwaccel-display.sh` | *Optional* second backend (`x11vnc + noVNC` on `:0`, V3D-accelerated) + `tesla-display` switcher CLI + Tk GUI (`Display Backend` desktop icon) |
-| 12 | `12-hdmi-capture.sh` | One-tap fullscreen viewer for a USB HDMI capture stick (e.g. MS2109 + Xiaomi TV Stick / Apple TV / console). Auto-routes dongle audio via PipeWire loopback to the default sink. |
-| 13 | `13-carplay.sh` | CarPlay / Android Auto kiosk via Carlinkit CCPA. Clones + builds `node-CarPlay`'s React `carplay-web-app`, serves it on `localhost:5005`, Chromium kiosk talks WebUSB to the dongle. Video + touch work today; audio is an open issue (see CHANGELOG). |
+| 12 | `12-hdmi-capture.sh` | One-tap fullscreen viewer for a USB HDMI capture stick (tested with **MS2109 / MS2130** UVC sticks, e.g. *Apera GA06* + Xiaomi TV Stick / Apple TV / console). Auto-routes dongle audio via PipeWire loopback to the default sink. |
+| 13 | `13-carplay.sh` | CarPlay / Android Auto kiosk via **Carlinkit CPC200-CCPA** (`1314:1521`). Clones + builds `node-CarPlay`'s React `carplay-web-app`, serves it on `localhost:5005`, Chromium kiosk talks WebUSB to the dongle. Video + touch work today; audio is an open issue (see CHANGELOG). |
 
 Each module is idempotent — re-run as many times as you like.
 

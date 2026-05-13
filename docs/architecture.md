@@ -73,12 +73,75 @@ When Tesla makes any other request:
        ^
        |
 [bt-agent (NoInputNoOutput)] handles pairing prompts in the background
-[BT class 0x5A020C]          tells peers we're a phone, not a computer
+[BT class 0x240404]          tells peers we're a stereo Headphones device
 ```
 
 PipeWire's `bluez5` plugin advertises us as A2DP source automatically once a
 device pairs. The BT class controls how peers decide whether we're a valid
-audio source — Tesla is restrictive and only accepts "phone" class.
+audio source — Tesla is restrictive: it pairs phone-class devices for HFP
+only and refuses A2DP, but reliably opens A2DP for the
+**Audio/Video → Headphones** class (`0x240404`). See troubleshooting.md for
+the longer story.
+
+## HDMI capture (module 12)
+
+```
+[HDMI source]              [USB capture stick]            [Pi]
+ console/Apple TV/    →    MS2109 / MS2130 UVC    →   /dev/video0 (V4L2)
+ phone/laptop/etc.         (e.g. Apera GA06)         + PA source MACROSILICON_*
+                                                            │
+                                                            ▼
+                                              [hdmi-capture.py wrapper]
+                                              ├─ pactl load-module
+                                              │     module-loopback
+                                              │     source=<capture>
+                                              ├─ mpv --fs --hwdec=auto
+                                              │     --profile=low-latency
+                                              │     av://v4l2:/dev/video0
+                                              └─ Tk overlay × close button
+                                                            │
+                                                            ▼
+                                       PipeWire default sink (BT → Tesla,
+                                       or whichever sink the user picked)
+                                                            │
+                                                            ▼
+                                              X session (Xvnc :1) →
+                                              KasmVNC → Tesla browser
+```
+
+The capture chip is plain UVC: the kernel exposes a `/dev/videoN` and an
+ALSA/PipeWire source automatically — module 12 only installs `mpv`,
+`v4l-utils`, `ffmpeg`, `pulseaudio-utils` and a launcher. The launcher
+auto-detects the source by name (`MACROSILICON`, `USB_Video`,
+`HDMI_Capture`) so any rebrand of the same chipset works.
+
+## CarPlay / Android Auto (module 13)
+
+```
+[iPhone / Android phone]
+      ↕ Wi-Fi + BT (wireless pairing handled by the dongle itself)
+[Carlinkit CPC200-CCPA]      USB 1314:1521 — "Magic Communication Auto Box"
+      ↕ USB (Carlinkit protocol: H.264 + touch + USB-audio class)
+[Pi]
+ ├─ udev: 99-carlinkit.rules → TAG+=uaccess (no root needed)
+ ├─ carplay-server.service   → python http.server on :5005
+ │      serving the prebuilt React app from ~/carplay/web-dist
+ ├─ carplay-launch.py        →  chromium --app=http://localhost:5005/
+ │      --use-angle=swiftshader (KasmVNC Xvnc has no GPU → SwiftShader WebGL)
+ │      --use-fake-ui-for-media-stream (auto-allow Siri mic)
+ │      --autoplay-policy=no-user-gesture-required
+ │      + Tk overlay × close button
+ └─ pactl load-module module-loopback source=<Auto_Box / CCPA>
+        → routes dongle's USB-audio to default sink (BT → Tesla)
+```
+
+The dongle handles the actual CarPlay / Android Auto wireless handshake
+with the phone. The Pi only speaks WebUSB to the dongle — there is no
+long-running Node daemon; Chromium itself drives the protocol via
+`node-CarPlay`'s React example app, which decodes H.264 via WebCodecs.
+On a Xvnc display (`:1`) WebGL has no GPU so we force ANGLE's SwiftShader
+backend; the `tesla-display switch hwaccel` backend (`:0`) gives real V3D
+acceleration if the kiosk needs it.
 
 ## Boot sequence
 
@@ -92,7 +155,7 @@ power on
  │    │    └── eth1 connection if iPhone present (route metric 100)
  │    ├── nftables.service
  │    │    └── /etc/nftables.d/{ttl-fix,port-redirect}.conf
- │    ├── bluetooth.service   (Class=0x5A020C in /etc/bluetooth/main.conf)
+ │    ├── bluetooth.service   (Class=0x240404 in /etc/bluetooth/main.conf)
  │    └── usbmuxd.socket      (socket-activated)
  │
  └── linger user=pi (loginctl enable-linger)

@@ -8,6 +8,28 @@
 - Optional: a small HDMI display + keyboard for first boot. After that
   everything is reachable over the network.
 
+### Optional hardware for media modules
+
+These are needed only if you enable the matching module — the core
+hotspot + KasmVNC stack does not require them.
+
+- **USB HDMI capture stick** (module 12, `12-hdmi-capture.sh`) — any
+  cheap **UVC** capture dongle based on the **MacroSilicon MS2109** or
+  **MS2130** chipset. Many brands rebrand the same hardware; one
+  example we've tested with is the
+  [Apera GA06 USB-C 1080p60](https://www.trendyol.com/apera/ga06-type-c-3-1-to-hdmi-1080p-60hz-4k-30hz-video-capture-goruntu-yakalama-karti-p-934269466).
+  The stick presents one `/dev/videoN` (V4L2) plus a USB-audio source
+  named `MACROSILICON_USB_Video` / similar — module 12 picks both up
+  automatically. 1080p30 is the safe ceiling on a Pi 5 over KasmVNC;
+  1080p60 works on the hwaccel backend.
+- **Carlinkit CCPA wireless CarPlay / Android Auto dongle** (module
+  13, `13-carplay.sh`) — the
+  [Carlinkit CPC200-CCPA](https://www.hepsiburada.com/carlinkit-ccpa-kablosuz-apple-carplay-android-auto-android-multimedya-ekrani-donusturucu-cpc200-ccpa-pm-HBC000059X6G5)
+  (USB ID `1314:1521`, advertised as **Magic Communication Auto Box**).
+  Older `1314:1520` variants share the same udev rule. The dongle does
+  the wireless pairing with the phone; the Pi only sees a USB device
+  speaking Carlinkit's protocol over WebUSB.
+
 ## Software
 
 - **Raspberry Pi OS Trixie**, fresh install or up to date.

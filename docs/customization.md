@@ -61,12 +61,32 @@ Set `BT_DEVICE_CLASS`:
 
 | Value | Meaning |
 |-------|---------|
-| `0x5A020C` | Smartphone with audio + telephony + networking (default) |
-| `0x40020C` | Phone with audio + telephony |
-| `0x200408` | Phone, mobile minor |
-| `0x600204` | Phone, smartphone, audio + info |
+| `0x240404` | Audio/Video → Headphones (**default**, what Tesla pairs as A2DP) |
+| `0x240414` | Audio/Video → Loudspeaker |
+| `0x240418` | Audio/Video → Headset+Speaker |
+| `0x5A020C` | Phone, smartphone with audio + telephony + networking (historical — Tesla pairs HFP only) |
 
-Re-run module 09.
+Re-run module 09. See [`docs/troubleshooting.md`](troubleshooting.md) for
+why Headphones beats Phone on Tesla.
+
+## HDMI capture overrides (module 12)
+
+`hdmi-capture.py` reads env vars at launch — set them in the desktop
+launcher's `Exec=` line, or run from a terminal:
+
+| Var | Default | Notes |
+|-----|---------|-------|
+| `HDMI_DEV` | `/dev/video0` | First UVC device. Use `/dev/video1` if you have a second cam. |
+| `HDMI_FPS` | `60` | Drop to `30` for bandwidth-constrained KasmVNC. |
+| `HDMI_W` / `HDMI_H` | `1920` / `1080` | Match the source; 1280×720 saves a lot of CPU. |
+| `HDMI_AUDIO_SRC` | auto | PulseAudio source name; override if your stick isn't named `MACROSILICON_*`. |
+
+## CarPlay overrides (module 13)
+
+| Var | Default | Notes |
+|-----|---------|-------|
+| `CARPLAY_URL` | `http://localhost:5005/` | The carplay-web-app build served by `carplay-server.service`. |
+| `CARPLAY_AUDIO_SRC` | auto | PulseAudio source name for the dongle (matches `Auto_Box` / `Magic_Communication` / `Carlinkit` / `CCPA`). |
 
 ## KasmVNC resolution / framerate
 
