@@ -6,6 +6,31 @@ marked **live-only** were applied to the running Pi but not committed to
 the repo (yet) — they're either user-specific (Turkish keyboard layout)
 or out-of-scope tweaks (mate-polkit duplicate suppression).
 
+## 2026-05-13 — Switcher self-heals through KasmVNC's cgroup
+
+### Fixed
+- **Display Backend GUI half-applying switches** when invoked from inside
+  KasmVNC's X session. Symptom: clicking `Apply: Hwaccel` would stop
+  KasmVNC but never start x11vnc/websockify, leaving nothing serving
+  `:443`; you had to drop to HDMI and trigger the switch again.
+  Root cause traced via per-step rc logging at `/tmp/tesla-display.log`:
+  every subprocess spawned by the Tk GUI inherits `kasmvnc.service`'s
+  systemd cgroup. The switcher's first action is
+  `systemctl disable --now kasmvnc.service`, so systemd SIGTERMs the
+  entire cgroup — *including the switcher itself*. `start_new_session=True`
+  doesn't help because it only changes POSIX session leadership, not
+  cgroup membership.
+  Two-layer fix: (1) wrap the GUI's subprocess in
+  `systemd-run --user --scope --quiet --collect --` so the switcher
+  lives in its own transient scope under `user@1000.service`, outside
+  kasmvnc's cgroup; (2) inside the script, self-elevate at the top via
+  the NOPASSWD rule, drop inner `sudo X` calls, and wrap each switch
+  body in `set +e` with per-step `rc=$?` logging — so the *next* time
+  something half-applies, the log will name the failing step. ([490bd91])
+
+  Earlier `bb8c7f4` was a partial fix and was reverted (`99fbf15`)
+  because it didn't account for the cgroup membership angle.
+
 ## 2026-05-12 — HDMI capture + CarPlay/AA kiosks land
 
 ### Added
@@ -174,6 +199,7 @@ redo these by hand.
 If any of these are worth repo'ing, a future module `10b-desktop-tweaks.sh`
 could bundle them.
 
+[490bd91]: https://github.com/mazix/tesla-pi-station/commit/490bd91
 [b880fd1]: https://github.com/mazix/tesla-pi-station/commit/b880fd1
 [8ffd5c4]: https://github.com/mazix/tesla-pi-station/commit/8ffd5c4
 [9fbd838]: https://github.com/mazix/tesla-pi-station/commit/9fbd838
